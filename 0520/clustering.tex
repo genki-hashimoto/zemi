@@ -1,0 +1,239 @@
+\documentclass[a4j]{jsarticle}
+
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{subfigure}
+\usepackage{verbatim}
+\usepackage{wrapfig}
+\usepackage{ascmac}
+\usepackage{makeidx}
+\usepackage{listings}
+\usepackage{here}
+\usepackage{amsmath}
+
+\renewcommand{\lstlistingname}{リスト}
+\def\vec#1{\mbox{\boldmath $#1$}}
+
+
+\title{クラスタリング(凸クラスタリングの導出)}
+\author{橋本 玄基}
+\date{2016/05/20}
+
+\begin{document}
+\maketitle
+
+
+\section{概要}
+クラスタリングは教師なし学習の一つであり，データ群を外的要因無く，アルゴリズムに従って分類する手法である．
+近年流行している深層学習は，教師付き学習であり．ラベルの貼られた大量のデータを学習して未来のデータを予測するために用いられる．
+対して教師なし学習は，正しいラベルが不明であるデータに用いられ，妥当であろうラベル分けを行いデータ解析の補助のために用いられる．
+例として，顧客のグループ化による広告メールの差別化等があげられる．橋本，清野らによるプログラミング教育のためのログデータ解析についてもログデータはラベルの無いデータであるため教師なし学習であるクラスタリングを用いて解析を行っている．
+
+
+\section{種類}
+\subsection{階層クラスタリング}
+階層クラスタリングは性質が近いデータをまとめていき，小さな分類を重ね大きな分類を作成する手法である．最短距離法，ウォード法などがあげられる．どの時点の階層を見るかで任意のクラスタに分類でき，樹形図等からデータの関係を非常に細かく見ることができるが，計算量が膨大かつモデルが複雑であるため，大量データの解析には向いていない．
+\subsection{非階層クラスタリング}
+非階層クラスタリングは分布や境界値などを更新することで，分類をする手法である．k-means法，混合正規分布モデル，凸クラスタリング，ノンパラメトリックベイズモデルなどがあげられる．
+
+\section{k-means法(k平均法)}
+\subsection{概要}
+k-means法は，予めクラスタ数を決定した上で，クラスタリングを行う．2つの手順，クラスタ毎の中心の更新と最も近いクラスタ中心に所属クラスを更新を2つの手順を繰り返してクラスタを確定する．k-means法はアルゴリズムが単純であり，高速である．
+\subsection{アルゴリズム}
+\label{sec:km-algo}
+クラスタ数が$k$,それぞれのクラスタに属するデータ集合を$C_1,C_2,\cdots,C_k$,クラスタ中心を$\vec c_1,\vec c_2,\cdots,\vec c_k$とする．このとき観測データ集合$X=\{\vec{x_i}\mid i=1,2,\cdots,n\}$であるとするとアルゴリズムは以下のようになる．
+\begin{enumerate}
+\item $X$の中からデータをランダムに$k$個選びそれぞれを$\vec c_1,\vec c_2,\cdots,\vec c_k$とする．
+\item 全データ$\vec x_i$($i=1,2,\cdots,n$)を最も近いクラスタ中心に対応するクラスタ集合に所属させる．
+\item 各クラスタ中心を式\ref{eq:k-means}の通りに更新する．
+\begin{equation}
+\vec c_i=\frac{1}{|C_i|}\sum_{\vec x \in C_i}^{j}\vec x
+\label{eq:k-means}
+\end{equation}
+\item クラスタ集合に変化がなくなるまで手順(2)，(3)を繰り返す．
+\end{enumerate}
+
+\subsection{k-means$++$}
+\ref{sec:km-algo}節より分かる通り，k-means法は初期値にランダムな値が用いられるため，収束する結果も必ず良くなるとは限らない．また，同じ結果になった際も初期値によては繰り返し回数がとても多くなってしまう．この問題をいくらか改善するためにk-means++法が提案された．
+アルゴリズムは以下のとおりである．
+\begin{enumerate}
+\item クラスタ中心$\vec c_1$を$X$の中からランダムに１つ選ぶ．
+\item $D(\vec x)(\vec x\in X)m$を求める．$D(\vec x)$は$\vec x$と決定された最も近いクラスタ中心の最短距離を表す．
+\item 式\ref{eq:k-means++}の確率分布に従って次のクラスタ中心$\vec c_i$を決定する．
+\begin{equation}
+\frac{D(\vec x)^2}{\sum_{\vec x\in X}D(\vec x)^2}
+\label{eq:k-means++}
+\end{equation}
+\item k-means法の手順(2)から(4)を行う．
+\end{enumerate}
+
+\subsection{k-means法の弱点}
+k-means法はクラスタ数が既知でなければ使用できない．また大きな弱点として，クラスタ毎のデータ数はほぼ等しくなるため，分布数が大きく異なるクラスを正しく分類することはできない．
+
+
+\section{混合正規分布モデル(GMM)}
+\subsection{概要}
+混合正規分布モデルは,あるデータ群はいくつかの正規分布によって発生したと考え,それぞれの正規分布のパラメータ(平均と分散)を求める数理モデルである.
+各正規分布をクラスタとみなし，クラスタリングの手段として用いられることになる.混合正規分布モデルによるクラスタリングの特徴として,1つのクラスタに属するのてはなく,どのクラスタであるかの確率が出力されるソフトなクラスタリングである点があげられる.
+
+\subsection{アルゴリズム}
+\label{sec:gmm_algo}
+クラスタ数が$c$のとき，クラスタを$\omega_i$，事前確率を$\pi_i$，正規分布の平均を$\vec\mu_i$，分散（2次元以上の場合は分散共分散行列）を$\vec\Sigma_i$とおく($i=1,2,\cdots,c$)．また，$\vec\theta_i = (\vec\mu_i,\vec\Sigma_i)^t$，$\vec\theta = (\vec\theta_1,\cdots,\vec\theta_c,\pi_1,\cdots,\pi_c)^t$と定義する．そして，$n$個のデータを$\vec x_k(k=1,2,\cdots,n)$とおいた時，アルゴリズムは以下のようになる．なお，$P(x)$は確率関数，$p(x)$は確率密度関数である．
+\begin{enumerate}
+\item $\pi_i,\vec\theta_i$の初期値を与える．
+\item 各$\vec x_k$に対して$P(\omega_i|\vec x_k;\vec\theta)$を求める．
+\begin{equation}
+	\label{eq:gmm_cls}
+P(\omega_i|\vec x_k;\vec\theta)
+=\frac{\pi_i\cdot p(\vec x_k|\omega_i;\vec\theta_i)}{\displaystyle\sum_{j=1}^{c} \pi_j\cdot p(\vec x_k|\omega_j;\vec\theta_j)}
+\end{equation}
+\item 次式によって$\hat\pi_i$,$\hat{\vec\mu_i}$,$\hat{\vec\Sigma_i}$を求めた後，$\pi_i = \hat\pi_i$,$\vec\mu_i = \hat{\vec\mu_i}$,$\vec\Sigma_i = \hat{\vec\Sigma_i}$としてパラメータを更新する．
+\begin{equation}
+\label{eq:gmm_pi}
+\hat\pi_i = \frac{1}{n}\displaystyle\sum_{k=1}^{n} P(\omega_i|\vec x_k;\vec\theta)
+\end{equation}
+\begin{equation}
+	\label{eq:gmm_mu}
+\hat{\vec\mu_i}= \frac{\displaystyle\sum_{k=1}^{n} P(\omega_i|\vec x_k;\vec\theta)\vec x_k}{\displaystyle\sum_{k=1}^{n} P(\omega_i|\vec x_k;\vec\theta)}
+\end{equation}
+\begin{equation}
+	\label{eq:gmm_sigma}
+\hat{\vec\Sigma_i}= \frac{\displaystyle\sum_{k=1}^{n} P(\omega_i|\vec x_k;\vec\theta)(\vec x_k - \hat{\vec\mu_i})(\vec x_k - \hat{\vec\mu_i})^t}
+{\displaystyle\sum_{k=1}^{n} P(\omega_i|\vec x_k;\vec\theta)}
+\end{equation}
+\item 対数尤度$\log p(\vec x;\vec\theta$)を求め増分が定めた閾値以下なら終了し，そうでなければ(2)に戻る．
+\end{enumerate}
+
+\subsection{混合正規分布モデルの弱点}
+k-means法と同様に，クラスタ数が既知である必要がある．しかし，情報量基準を用いてモデル選択を行うことが可能である．しかしそのためには各クラス多数で計算を繰り返すため，計算量がとても多くなる．
+
+
+\section{凸クラスタリング}
+\subsection{概要}
+前述の2つの手法は，共にクラスタ数が既知である必要があるとともに，結果が初期値に依存するため，必ず大域的最適解が求まる保証が無い．これを解決するために考えられたのが凸クラスタリングである．凸クラスタリングは混合正規分布モデルに正規分布の分散共分散行列は一定であり，クラスタ間で共通であることと，各クラスタのプロトタイプ(クラスタの中心)はパターン集合の中から選ぶことの2つの条件を加えたものである．
+\subsection{導出}
+$d$次元空間上に$n$個のデータ$\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n$があり$c$個のクラスタ$\omega_1,\omega_2,\cdots,\omega_c$に分類されるとする．凸クラスタリングでは$c$は未知である．このデータ集合に対する尤度$p(\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n;\vec\theta)$
+は各々の尤度を取り，以下のとおりである．
+\begin{equation}
+	\label{eq:totsu1}
+	p(\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n;\vec\theta) = \prod_{k=1}^{n}p(\textbf{x}_k;\vec\theta) \\
+\end{equation}
+\begin{equation}
+	\label{eq:totsu2}
+	p(\textbf{x}_k;\vec\theta) = \sum_{i=1}^{c}\pi_i\cdot p(\textbf{x}_k|\omega_i;\vec\theta_i) \\
+\end{equation}
+\begin{equation}
+	\label{eq:totsu_pi}
+	\sum_{i=1}^{c}\pi_i = 1
+\end{equation}
+$\pi_i$は$\omega_i$の混合比(事前確率)，$\vec\theta=(\vec\theta_1,\vec\theta_2,\cdots,\vec\theta_c,\pi_1,\pi_2,\cdots,\pi_c)^t，\vec\theta_i=(\vec\mu_i,\vec\Sigma_i)^t$である．
+
+
+
+条件の1つめから凸クラスタリングでは分散共分散行列は既知であるとされ推定は行われない．そこで，$\vec{\Sigma_i}$として以下の対角行列を考える．$\vec{I_d}$は$d次元$の単位行列とする．
+\begin{equation}
+	\vec{\Sigma_i} = \sigma^2\vec{I_d}
+\end{equation}
+すると，パラメータ$\vec\theta_i$は$\vec\mu_i$のみとなるため式\ref{eq:totsu1}，\ref{eq:totsu2}から$p(\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n;\vec\theta)$は
+\begin{equation}
+	p(\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n;\vec\theta) = \prod_{k=1}^{n}\left(\sum_{i=1}^{c}\pi_i\cdot p(\textbf{x}_k|\omega_i;\vec\mu_i)\right)
+\end{equation}
+と書け，対数尤度$\log p(\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n;\vec\theta)$は以下のようになる．
+\begin{equation}
+	\label{eq:totsu3}
+	\log p(\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n;\vec\theta) = \sum_{k=1}^{n}\log\left(\sum_{i=1}^{c}\pi_i\cdot p(\textbf{x}_k|\omega_i;\vec\mu_i)\right)
+\end{equation}
+
+条件の2つめから，プロトタイプはデータ集合の中から選ばれる．混合正規分布におけるプロトタイプは$\vec\mu_i$なので
+\begin{equation}
+	\label{eq:totsu4}
+	\vec\mu_i \in \{\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n\}
+\end{equation}
+である．混合正規分布モデルにそって式\ref{eq:totsu3}を最大にする$cとc個の\pi_iと\vec\mu_i$を式\ref{eq:totsu4}の条件で求める．$c$の値を固定し，それぞれに対し，パラメータの推定を行う方法が単純であるが，計算量が膨大になるため，次の方法を用いる．
+
+最初に$c=n$とおき，各データをプロトタイプとし，パラメータ推定をすると不要なクラスタの混合比$\pi_i\simeq 0$となると予想できるため，0でない$\pi_i$を持つクラスタの数が最終的な$c$の値とする．
+このとき
+\begin{equation}
+	\label{eq:totsu5}
+	\vec\mu_i = \textbf{x}_i (i = 1,2,\cdots,n)
+\end{equation}
+となり，式\ref{eq:totsu_pi}は
+\begin{equation}
+	\sum_{i=1}^{n}\pi_i = 1
+\end{equation}
+と書き換えられる．正規分布$p(\textbf{x}_k|\omega_i;\vec\mu_i)$は式\ref{eq:totsu5}より$p(\textbf{x}_k|\omega_i;\textbf{x}_i)$と表される．これを$f_{ik}$と定義する．
+\begin{eqnarray}
+	\label{eq:totsu6}
+	f_{ik} &\overset{\mathrm{def}}{=}& p(\textbf{x}_k|\omega_i;\textbf{x}_i) \nonumber \\
+	&=& \frac{1}{(2\pi)^{d/2}|\vec\Sigma_i|^{1/2}}\exp\left[-\frac{1}{2}(\textbf{x}_k - \textbf{x}_i)^t \vec\Sigma_i^{-1}(\textbf{x}_k - \textbf{x}_i)\right] \nonumber \\
+	& = & \frac{1}{(2\pi_i\sigma^2)^{d/2}}\exp\left[-\frac{1}{2\sigma^2}||\textbf{x}_k - \textbf{x}_i||^2\right]
+\end{eqnarray}
+式\ref{eq:totsu6}は，以下から求められる．
+
+\begin{eqnarray}
+	|\vec\Sigma_i|^{1/2} &=& \{(\sigma^2)^d\}^{1/2} \nonumber \\
+	&=& (\sigma^2)^{d/2}
+\end{eqnarray}
+\begin{eqnarray}
+	&&(\textbf{x}_k - \textbf{x}_i)^t \vec\Sigma_i^{-1}(\textbf{x}_k - \textbf{x}_i) \nonumber \\
+	&=&
+	\begin{bmatrix}
+		\textmd{x}_{k1}-\textmd{x}_{i1} & \cdots & \textmd{x}_{kd}-\textmd{x}_{id} \\
+	\end{bmatrix}
+	\begin{bmatrix}
+		\sigma^{-2} & & \\
+		& \ddots & \\
+		& & \sigma^{-2} \\
+	\end{bmatrix}
+	\begin{bmatrix}
+		\textmd{x}_{k1}-\textmd{x}_{i1} \\
+		\vdots \\
+		\textmd{x}_{kd}-\textmd{x}_{id}
+	\end{bmatrix} \nonumber\\
+	&=& \frac{1}{\sigma^2}\sum_{j=1}^{d}\textmd{x}_{kj}-\textmd{x}_{ij} \nonumber\\
+	&=& \frac{1}{\sigma^2}\sqrt{\sum_{j=1}^{d}\textmd{x}_{kj}-\textmd{x}_{ij}}^2 \nonumber\\
+	&=& \frac{1}{\sigma^2}||\textbf{x}_k - \textbf{x}_i||^2
+\end{eqnarray}
+$f_{ik}$はデータが与えられた時点で定数のみの式となるため$f_{ik}$自体を定数とみなせる．以上のことから式\ref{eq:totsu3}は下式の通りになる．
+\begin{eqnarray}
+		\label{eq:totsu_saidai}
+		\log p(\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n;\vec\theta) &=& \sum_{k=1}^{n}\log\left(\sum_{i=1}^{c}\pi_i\cdot p(\textbf{x}_k|\omega_i;\vec\mu_i)\right) \nonumber \\
+		&=& \sum_{k=1}^{n}\log\left(\sum_{i=1}^{c}\pi_i\cdot p(\textbf{x}_k|\omega_i;\textbf{x}_i)\right) \nonumber \\
+		&=& \sum_{k=1}^{n}\log\left(\sum_{i=1}^{c}\pi_i\cdot f_{ik} \right)
+\end{eqnarray}
+凸クラスタリングは混合正規分布モデルの特別な場合なのでアルゴリズム自体は\ref{sec:gmm_algo}と同じであるが，今までの条件から$\vec\mu_i, \vec\Sigma_i$は定数となっているため，更新するパラメータは$\pi_i$のみである．よってアルゴリズムのうち用いる式は式\ref{eq:gmm_pi}，\ref{eq:gmm_cls}のみであり，式\ref{eq:gmm_mu}，\ref{eq:gmm_sigma}は必要ない．そのため凸クラスタリングの更新式は\ref{eq:gmm_pi}に\ref{eq:gmm_cls}を代入し，以下のとおりとなる．
+\begin{eqnarray}
+	\pi_i &\leftarrow& \frac{1}{n}\sum_{k=1}^{n}P(\omega_i|\textbf{x}_k) \nonumber \\
+	&=& \frac{1}{n}\sum_{k=1}^{n}\frac{\pi_i\cdot p(\textbf{x}_k|\omega_i;\vec\theta_i)}{\displaystyle\sum_{j=1}^{c} \pi_j\cdot p(\textbf{x}_k|\omega_j;\vec\theta_j)} \nonumber \\
+	&=& \frac{1}{n}\sum_{k=1}^{n}\frac{\pi_i\cdot p(\textbf{x}_k|\omega_i;\textbf{x}_i)}{\displaystyle\sum_{j=1}^{c} \pi_j\cdot p(\textbf{x}_k|\omega_j;\textbf{x}_j)} \nonumber \\
+	&=& \frac{1}{n}\sum_{k=1}^{n}\frac{\pi_i\cdot f_{ik}                            }{\displaystyle\sum_{j=1}^{c} \pi_j\cdot f_jk}
+\end{eqnarray}
+式\ref{eq:totsu_pi}のもとで式\ref{eq:totsu_saidai}を最大化する問題は(証明の難易度が高いため省略するが)，凸計画問題であるため，凸クラスタリングは一回の志向で大域的最適解を求めることができる．
+\subsection{アルゴリズム}
+アルゴリズムは以下のようになる．記号の定義は前節と同様である．
+
+\begin{enumerate}
+	\item 分散$\sigma^2$を設定する．
+	\item 与えられたデータ$\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n$を用いて以下の式を求める
+	\begin{eqnarray*}
+		f_{ik} &\overset{\mathrm{def}}{=}& p(\textbf{x}_k|\omega_i;\textbf{x}_i) \\
+		& = & \frac{1}{(2\pi_i\sigma^2)^{d/2}}\exp\left[-\frac{1}{2\sigma^2}||\textbf{x}_k - \textbf{x}_i||^2\right]
+	\end{eqnarray*}
+	\item 事前確率である混合比$\pi_1,\pi_2,\cdots,\pi_n$の初期値を設定する．
+	\item $\pi_i$を以下の式で更新する．
+	\begin{equation}
+		\pi_i \leftarrow \frac{1}{n}\sum_{k=1}^{n}\frac{\displaystyle \pi_i\cdot f_{ik}}{\displaystyle \sum_{j=1}^{n}\pi_i\cdot f_{ik}}
+	\end{equation}
+	\item 以下の対数尤度の増分が閾値以下なら終了し，そうでなければ3を繰り返す．
+	\begin{equation}
+		\log p(\textbf{x}_1,\textbf{x}_2,\cdots,\textbf{x}_n;\vec\theta)= \sum_{k=1}^{n}\log \left(\sum_{i=1}^{n}\pi_i\cdot f_{ik}\right)
+	\end{equation}
+\end{enumerate}
+
+\subsection{凸クラスタリングの弱点}
+凸クラスタリングは，k-means,混合正規分布モデルと違い，凸計画化問題であるため，必ず大域的最適解が求まる利点があるが，分散$\sigma^2$がハイパーパラメータであり，かつすべてのクラスタで等しくなる．また，式の導出から超球形の分布となる．そしてその分散も適切にしなければ効果的なクラスタリングを行うことができない．また，凸クラスタリングの2つ目の条件は，データが十分に大きく，クラスタが密であることを前提にしているため，十分なデータ数が必要である点がある．
+
+%\section{ノンパラメトリックベイズモデル}
+%勉強中，前述の3つの非階層クラスタリング手法の欠点を全て補う．
+\end{document}
