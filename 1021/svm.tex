@@ -1,0 +1,408 @@
+\documentclass[a4j]{jsarticle}
+
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{subfigure}
+\usepackage{verbatim}
+\usepackage{wrapfig}
+\usepackage{ascmac}
+\usepackage{makeidx}
+\usepackage{listings}
+\usepackage{here}
+\usepackage{amsmath}
+
+\renewcommand{\lstlistingname}{リスト}
+\def\vec#1{\mbox{\boldmath $#1$}}
+
+
+
+\newcommand{\argmax}{\mathop{\rm argmax}\limits}
+\newcommand{\argmin}{\mathop{\rm argmin}\limits}
+
+\makeatletter
+	\renewcommand{\theequation}{%
+	\thesection.\arabic{equation}}
+	\@addtoreset{equation}{section}
+\makeatother
+
+
+
+\title{サポートベクターマシン}
+\author{橋本 玄基}
+\date{2016/10/21}
+
+\begin{document}
+\maketitle
+
+
+\section{概要}
+サポートベクターマシン(Support Vector Maschine，以下SVM)はクラス分類器を作成するための教師あり学習手法の一つである\cite{main}．境界面からデータまでの距離「マージン(Margin)」を最大化するように学習を行うため，汎化性能がトレーニングデータに対して最適になることや，最終的に学習に利用するのは「Supportベクトル(Support Vector)」(後述)となるデータのみのため学習計算量が小さい点などがメリットとしてあげられる．本編では，類似手法であるパーセプトロン(Perceptron)について述べた後，線形なSVMの導出，非線形なSVMの導出，分離不可な問題の解決法の順で解説する．
+
+\section{パーセプトロン(Perceptron)}
+2クラス分類問題を考える．$d$次元の特徴ベクトル$\vec{x}=(x_1, \cdots, x_d)^T$をクラス$C_1$,$C_2$に分類するとき，バイアス$w_0$と重み$\vec{w}=(w_1,\cdots,w_d)$を定義したとき識別関数$f(\vec x)$は
+\begin{equation}
+	f(\vec x) = \vec{w}^T \vec{x} + w_0
+\end{equation}
+と表される．識別境界を$f(\vec x)=0$とすれば，識別規則は
+\begin{eqnarray}
+  \begin{cases}
+    f(\vec x) \geq 0 \Rightarrow C_1 & \\
+    f(\vec x) < 0 \Rightarrow C_2 &
+  \end{cases}
+\end{eqnarray}
+となる．クラス$C_i$の識別関数を
+\begin{equation}
+	g_i(\vec x) = \vec{w}_i^T \vec{x} + w_{0i}
+\end{equation}
+としたとき$g(\vec x) = g_1(\vec x)- g_2(\vec x)$とすれば$g(\vec x) \geq 0$なら$C_1$，$g(\vec x) < 0$なら$C_2$と判別できる．
+
+perceptronでは学習データを用いて重みを学習する．重みとバイアスを初期化し，学習データを識別関数に入力したとき，誤識別が起きたら
+\begin{eqnarray}
+  \begin{cases}
+    C_1をC_2と誤識別 \Rightarrow \vec w' = \vec w + \epsilon \vec x ， w_0' = \epsilon \vec x& \\
+    C_2をC_1と誤識別 \Rightarrow \vec w' = \vec w - \epsilon \vec x ， w_0' = -\epsilon \vec x &
+  \end{cases}
+\end{eqnarray}
+と重みを更新する．$\epsilon$は正の定数である．全てのデータが正しく識別されるまで学習を繰り返す．
+\section{ハードSVM(Hard SVM)}
+前章と同様に$C_1,C_2$を分類する2クラス分類問題について考える．$d$次元の特徴ベクトル$\vec{x}=(x_1, \cdots, x_d)^T$，バイアス$w_0$と重み$\vec{w}=(w_1,\cdots,w_d)^T$を定義し$\vec{\rm x}=(1,\vec{x}^T)^T$，$\vec{\rm w}=(w_0,\vec{w}^T)^T$とおく．
+\subsection{線形なSVM}
+$\vec{x}$を用いて表すと線形識別関数は
+\begin{equation}
+	g(\vec{x}) = w_0 + \vec{w}^T\vec{x}
+\end{equation}
+と表せる．このとき$g(\vec{x})=0$の超平面でクラスの境界が存在し，識別境界と呼ばれる．その法線は$\vec{w}$である．識別境界に対して一定の距離(マージンと呼ぶ)以内には学習データが存在しない用にパラメータ$\vec{\rm w}$を決定することを考える．マージンが最大になる$\vec{\rm w}$を求める手法がサポートベクターマシン(SVM)である．
+
+まずはじめに，重みが$\vec{\rm w}$のとき，あるデータ$\vec{x}$と識別境界の距離を求める．$\vec{x}$と識別境界の垂線と識別境界の交点を$\vec{x}^\perp$とすると
+\begin{equation}
+	\label{eq:3-2}
+	\vec{x} = \vec{x}^\perp + r \frac{\vec{w}}{\| \vec{w} \|}
+\end{equation}
+と表せる．このときの$|r|$が識別境界と$\vec{x}$のユークリッド距離である．$\vec{x}^\perp$は識別境界上の点なので
+\begin{equation}
+	\label{eq:3-3}
+	g(\vec{x}^\perp) = w_0 + \vec{w}^T\vec{x}^\perp = 0
+\end{equation}
+が成立する．式(\ref{eq:3-2})より$\vec{x}^\perp=\vec{x}-r(\vec{w}/\|\vec{w}\|)$を式(\ref{eq:3-3})に代入すると
+\begin{eqnarray}
+	g(\vec{x}^\perp)&=& w_0+\vec{w}^T(x - r \frac{\vec{w}}{\|\vec{w}\|})\nonumber\\
+	&=& w_0 + \vec{w}^T\vec{x}-r\frac{\vec{w}^T\vec{w}}{\|\vec{w}\|}\nonumber \\
+	&=& w_0 \vec{w}^T\vec{x} - r\frac{\|\vec{w}\|^2}{\|\vec w \|} \nonumber \\
+	&=& w_0 + \vec{w}^T\vec{x} - r\|\vec{w}\| \nonumber \\
+	&=& 0
+\end{eqnarray}
+上式を変形すると
+\begin{equation}
+	r = \frac{w_0 + \vec{w}^T\vec{x}}{\|\vec w \|}
+\end{equation}
+が得られるので求めたい識別境界と$\vec{x}$の距離$|r|$は
+\begin{equation}
+	\label{eq:ユークリッド距離}
+	|r| = \left|\frac{w_0 + \vec{w}^T\vec{x}}{\|\vec w \|}\right| = \frac{|w_0 + \vec{w}^T\vec{x}|}{\|\vec w \|} = \frac{|g(\vec x)|}{\|\vec w \|}
+\end{equation}
+である．
+
+ここで，重み$\vec{\rm w}$で全てのデータ$\vec{x}_i~(i=1,\cdots,n)$が正しいクラスに分類できているとする．この時すべての$i$に対して
+\begin{eqnarray}
+	\label{eq:3-x}
+  \begin{cases}
+    \vec{x}_i \in C_1 \Rightarrow g(\vec{x}_i)>0 \\
+    \vec{x}_i \in C_2 \Rightarrow g(\vec{x}_i)<0
+  \end{cases}
+\end{eqnarray}
+が成り立たなければならない（SVMでは$g(\vec{x})=0$にデータは存在しないと考える)．データ$\vec{x}_i$の所属クラスを$y_i \in \{ 1,-1\}(y_i=1なら\vec{x}_i \in C_1，y_i=-1なら\vec{x}_i \in C_2)$と表現すると
+\begin{equation}
+	\label{eq:yigx}
+	y_i g(\vec{x}_i)>0,~~\forall i = 1,\cdots,n
+\end{equation}
+は式(\ref{eq:3-x})と等価になる．このときあるデータの識別境界までのユークリッド距離は式(\ref{eq:ユークリッド距離})，(\ref{eq:yigx})から
+\begin{equation}
+	\frac{|g(\vec x)|}{\|\vec w \|} = \frac{y_i g(\vec x)}{\|\vec w \|}
+\end{equation}
+と表せる．このとき重み$\vec{\rm w}$に対するマージンは
+\begin{eqnarray}
+	\label{eq:mergin}
+\min_{i \in \{1,\cdots,n\}}\frac{y_ig(\vec{x}_i)}{\|\vec w \|} &=& \frac{1}{\| \vec w \|}\min_{i \in \{1,\cdots,n\}}y_i g(\vec{x}_i) \nonumber \\
+&=&\frac{1}{\| \vec w \|}\min_{i \in \{1,\cdots,n\}}y_i (w_0 + \vec{w}^T \vec{x}_i)
+\end{eqnarray}
+で定義される．マージンが大きければ学習データは識別境界から離れていることを意味し，汎化性能が高くなりそうなことが予想できる．よってSVMではマージンを最大化することを考える．マージンを最大にする重み$\vec{\rm w}$を求める問題は以下のとおりである．
+\begin{equation}
+	\label{eq:mondai1}
+	\vec{\rm w}_{\rm SVM} = \argmax_{\vec{\rm w}} \left\{ \frac{1}{\| \vec w \|}\min_{i \in \{1,\cdots,n\}}y_i (w_0 + \vec{w}^T \vec{x}_i) \right\}
+\end{equation}
+これを解くのは複雑であるため，考え方を変える．
+はじめに$\vec{\rm w}$の大きさを変更してもマージンの大きさには影響がない．例として定数$\alpha$倍した重み$\alpha \vec{\rm w}$とデータの距離$|r|_{\alpha \vec{\rm w}}$を計算したものを以下に示す．
+\begin{eqnarray}
+	|r|_{\alpha \vec{\rm w}} &=& \frac{|\alpha w_0 + \alpha\vec{w}^T \vec{x}|}{\|\alpha \vec{w}\|}  = \frac{\alpha|w_0+\vec{w}^T \vec x|}{\alpha\|\vec w \|}  = |r|_{\vec{\rm w}}
+\end{eqnarray}
+そこで識別境界からもっとも近いデータ点を$\vec{x}_j$とし
+\begin{equation}
+	y_j(w_0+\vec{w}^T\vec{x}_j)=1
+\end{equation}
+とする．これによって$\vec{\rm w}$の大きさを制限できる．上式を満たすとき
+\begin{equation}
+	\label{omomi_seigen}
+		y_j(w_0+\vec{w}^T\vec{x}_i)\ge 1,~~\forall i=1,\cdots,n
+\end{equation}
+が成り立つ(もっとも近いデータの距離が1ならば距離が1未満のデータは存在しない)．この条件下で式(\ref{eq:mergin})のマージンは
+\begin{equation}
+	\frac{1}{\| \vec w \|}\min_{i \in \{1,\cdots,n\}}y_i (w_0 + \vec{w}^T \vec{x}_i) = \frac{1}{\| \vec w \|}
+\end{equation}
+と非常に簡単になる．$1/\|\vec w\|$を最大化することは$\|\vec w\|$を最小化，更には$\| \vec w\|^2$を最小化することと等価である．このことから式(\ref{eq:mondai1})は下式のような制約付き最適化問題に変形できる．
+\begin{eqnarray}
+	\label{eq:mondai2}
+	&&\vec{\rm w}_{\rm SVM} = \argmin{\vec{\rm w}}\frac{1}{2}\|\vec w\|^2 \nonumber \\
+	&&s.t.~~y_i(w0+\vec{w}^T\vec{x}_i)\ge 1,~~\forall i=1,\cdots,n
+\end{eqnarray}
+制約付き最適化問題を解くためにはラグランジュの未定乗数法を用いる．各不等式制約に対応する未定乗数を$\vec{a}=(a_1,\cdots,a_n)^T~(a_i\ge0)$とおき，ラグランジュ関数を
+\begin{equation}
+	L(\vec{\rm w},\vec a) = \frac{1}{2}\|\vec w\|^2 +\sum^{n}_{i=1}a_i(1-y_i(w_0 + \vec{w}^T\vec{x}_i))
+\end{equation}
+と定義する．式(\ref{eq:mondai2})は強双対性を満たすことが知られており\cite{強双対}
+\begin{equation}
+	\vec{\rm w}_{\rm SVM} = \argmin_{\vec{\rm w}} \max_{\vec{a}|a_i\ge0}L(\vec{\rm w},\vec{a})
+\end{equation}
+と書き換えられる．これを解くためには最急降下法を用いれば良い．ラグランジュ関数を$\vec{w},w_0,$各未定乗数$a_i$で微分すると
+\begin{eqnarray}
+	\label{eq:saikyuu1}
+	\frac{\partial L(\vec{\rm w},\vec{a})}{\partial \vec w} &=& \vec w + \sum^{n}_{i=1}a_i(0-y_i(0+\vec{x}_i)) \nonumber \\
+	&=& \vec w - \sum^{n}_{i=1}a_i y_i \vec{x}_i \\
+	\label{eq:saikyuu2}
+	\frac{\partial L(\vec{\rm w},\vec{a})}{\partial w_0} &=& 0+ \sum^{n}_{i=1}a_i(0-y_i(1+0)) \nonumber \\
+	&=& -\sum^{n}_{i=1}a_iy_i  \\
+	\frac{\partial L(\vec{\rm w},\vec{a})}{\partial a_i}&=& 0+ 1(-y_i(w_0+\vec{w}^T\vec{x}_i))\nonumber \\
+	&=& 1-y_i(w_0 + \vec{w}^T\vec{x}_i)
+\end{eqnarray}
+となる．初期値$\vec{\rm w}^{(0)},\vec{a}^{(0)}$を設定し上式を用いて最急降下法で更新することで求められる（この時$\vec{w},w_i$は最小化，$a_i$は最大化かつ更新は条件$a_i\ge0$を満たすように補整する必要があることに注意する)．
+
+ラグランジュの未定乗数に対するKKT条件\cite{kkt}から最適解に対して全ての$i=1,\cdots,n$に対して下式が成り立つ．
+\begin{eqnarray}
+	\label{eq:kkt1}
+	&&a_i \ge 0 \\
+	\label{eq:kkt2}
+	&&1-y_i(w_0 + \vec{w}^T\vec{x}_i)\le 0 \\
+	\label{eq:kkt3}
+	&&a_i(1-y_i(w_0+\vec{w}^T\vec{x}_i))=0
+\end{eqnarray}
+式(\ref{eq:kkt1}),(\ref{eq:kkt2})は今までに出てきている条件と同じである(未定乗数の制約，最適化問題の制約条件)．式(\ref{eq:kkt3})は
+\begin{eqnarray}
+	\label{サポートベクトル1}
+	&&a_i >0 \Rightarrow y_i(w_0 + \vec{w}^T\vec{x}_i)=1 \\
+	&&(1-y_i(w_0+\vec{w}^T\vec{x}_i)=0でなければ等式が成り立たない) \nonumber \\
+	\label{サポートベクトル2}
+	&&y_i(w_0+\vec{w}^T\vec{x}_i) > 1 \Rightarrow a_i = 0 \\
+	&&(a_i=0でなければ等式が成り立たない) \nonumber
+\end{eqnarray}
+を意味する．この式からマージンを決定しているのはマージン上のデータ(マージンまでの距離が1のデータ)でありこれをサポートベクトルという．
+
+次に，最急降下法の更新式が多く大変なためより簡単にすることを考える．最急降下法で最適解を求めるとき,
+$\partial L(\vec{\rm w},\vec{a})/\partial \vec{w}=0,\partial L(\vec{\rm w},\vec{a})/\partial w_0 = 0$を満たす必要がある．このことと式(\ref{eq:saikyuu1}),(\ref{eq:saikyuu2})から
+\begin{eqnarray}
+	\label{eq:soutui1}
+	\vec w - \sum^{n}_{i=1}a_i y_i \vec{x}_i &=& 0 \nonumber \\
+	\vec w &=& \sum^{n}_{i=1}a_i y_i \vec{x}_i
+\end{eqnarray}
+\begin{eqnarray}
+	\label{eq:soutui2}
+	-\sum^{n}_{i=1}a_iy_i &=& 0 \nonumber \\
+	\sum^{n}_{i=1}a_iy_i &=& 0
+\end{eqnarray}
+が成立する．これらをラグランジュ関数に代入すると
+\begin{eqnarray}
+	\label{eq:ldual}
+	L(\vec{\rm w},\vec a) &=&\frac{1}{2}\|\vec w\|^2 +\sum^{n}_{i=1}a_i(1-y_i(w_0 + \vec{w}^T\vec{x}_i)) \nonumber \\
+	&=& \frac{1}{2}\|\vec w\|^2+\sum^{n}_{i=1}a_i(1-y_iw_0-y_i\vec{w}^T\vec{x}_i) \nonumber \\
+	&=& \frac{1}{2}\|\vec w\|^2+\sum^{n}_{i=1}a_i-w_0a_iy_i-\vec{w}^Ta_iy_i\vec{x}_i \nonumber \\
+	&=& \frac{1}{2}\|\vec w\|^2+\sum^{n}_{i=1}a_i -\sum^{n}_{i=1}w_0a_iy_i - \sum^{n}_{i=1}\vec{w}^Ta_iy_i\vec{x}_i \nonumber \\
+	&=& \frac{1}{2}\|\vec w\|^2+\sum^{n}_{i=1}a_i -w_0\sum^{n}_{i=1}a_iy_i - \vec{w}^T\sum^{n}_{i=1}a_iy_i\vec{x}_i~~式(\ref{eq:soutui2})を代入\nonumber \\
+	&=& \frac{1}{2}\|\vec w\|^2+\sum^{n}_{i=1}a_i - \vec{w}^T\sum^{n}_{i=1}a_iy_i\vec{x}_i~~式(\ref{eq:soutui1})を左向きに代入 \nonumber \\
+	&=& \frac{1}{2}\|\vec w\|^2+\sum^{n}_{i=1}a_i - \vec{w}^T\vec{w} \nonumber \\
+	&=& \frac{1}{2}\|\vec w\|^2+\sum^{n}_{i=1}a_i - \|\vec{w}\|^2 \nonumber \\
+	&=& -\frac{1}{2}\|\vec w\|^2+\sum^{n}_{i=1}a_i~~式(\ref{eq:soutui1})を右向きに代入 \nonumber \\
+	&=& -\frac{1}{2}\|\sum^{n}_{i=1}a_iy_ix_i\|^2+\sum^{n}_{i=1}a_i \nonumber \\
+	&=& -\frac{1}{2}\sum^{n}_{i=1}\sum^{n}_{j=1}a_ia_jy_iy_j\vec{x}_i^T\vec{x}_j +\sum^{n}_{i=1}a_i =L_{dual}(\vec{a})
+\end{eqnarray}
+これによってラグランジュ関数が$\vec a$のみに依存する$L_{dual}(\vec a)$に変換できた．このことから式(\ref{eq:mondai2})の最適化問題は$\vec a$を最適化する以下の問題と等価になる．KKT条件の制約がある点に注意する．
+\begin{eqnarray}
+	&&\vec{a}_{\rm SVM} = \argmax_{\vec{a}} \left\{\sum^{n}_{i=1}a_i -\frac{1}{2}\sum^{n}_{i=1}\sum^{n}_{j=1}a_ia_jy_iy_j\vec{x}_i^T\vec{x}_j \right\} \nonumber \\
+	&&s.t. ~~\sum^{n}_{i=1}a_iy_i=0かつa_i \ge 0,~~\forall i=1,\cdots,n
+\end{eqnarray}
+この最適化問題を解いた後，式(\ref{eq:soutui1})から$\vec{w}$を求めることができる．
+式(\ref{サポートベクトル2})から$y_i(w_0+\vec{w}^T\vec{x}_i)>1$となる$i$については$a_i=0$となる．よって式(\ref{eq:重み計算})の$a_i=0$となる学習データは$\vec w$の決定に寄与せず，$a_i>0$となる学習データ（サポートベクトル）のみが$\vec{w}$を決定する．ここで，サポートベクトルの添字集合を$S$と定義する
+\begin{equation}
+	S=\{j|a_j > 0\}
+\end{equation}
+サポートベクトルはマージンの線上すなわち識別境界から最も近いデータであり，SVMはそれらのみで学習を行うため，外れ値の影響を受けにくいことが分かる．重み$\vec w$を求める式は以下のように書き換えられる．
+\begin{equation}
+	\label{eq:重み計算}
+	\vec w = \sum_{i\in S}a_iy_i\vec{x}_i
+\end{equation}
+最後に$w_0$はどのように求めればよいのか．式(\ref{サポートベクトル1})から$\forall j \in S$に対して$y_i(w_0+\vec{w}^T\vec{x}_j)=1$が成り立つ．更に$y_j\in\{-1,1\}$なので$y_j^2=1$である．これらから
+\begin{eqnarray}
+	y_i(w_0+\vec{w}^T\vec{x}_j)&=&y_j^2 \nonumber \\
+	w_0+\vec{w}^T\vec{x}_j &=&y_j\nonumber \\
+	w_0 &=& y_j -\vec{w}^T\vec{x}_j ~~~式(\ref{eq:重み計算})より\nonumber \\
+	&=& y_j-\sum_{i\in S}a_iy_i\vec{x}^T_i\vec{x}_j
+\end{eqnarray}
+誤差を少なくするために平均をとると
+\begin{equation}
+	w_0 = \frac{1}{|S|}\sum_{j\in S}\left\{y_j-\sum_{i\in S}a_iy_i\vec{x}^T_i\vec{x}_j\right\}
+\end{equation}
+によって$w_0$を求められる．
+
+\subsection{カーネル関数を用いた非線形なSVM}
+世の中には線形識別が困難な分類問題が多く存在する．そのような場合には特徴ベクトル$\vec x$を別の空間に変換することで分離することを考える．関数$\phi$を用いて$\vec x$を変換したベクトルを$\vec z$とする．すなわち$\vec z = \phi(\vec x)$である．さらにカーネル関数を$\kappa (\vec x,\vec{x}')=\phi(\vec x)^T\phi(\vec{x}')=\vec{z}^T\vec{z}'$と定義する．ここで$\vec z$に対する線形識別関数
+\begin{equation}
+	g(\vec z) = w_0 + \vec{w}^T\vec z
+\end{equation}
+を考えると線形のときの式(\ref{eq:ldual})と同様に$\vec{z}_i = \phi(\vec{x}_i)$とおいてラグランジュの未定乗数法を適用すると
+\begin{eqnarray}
+	L_{dual}(\vec a)&=& \sum^{n}_{i=1}a_i -\frac{1}{2}\sum^{n}_{i=1}\sum^{n}_{j=1}a_ia_jy_iy_j\vec{z}_i^T\vec{z}_j \nonumber \\
+	&=& \sum^{n}_{i=1}a_i -\frac{1}{2}\sum^{n}_{i=1}\sum^{n}_{j=1}a_ia_jy_iy_j\kappa(\vec{x}_i,\vec{x}_j)
+\end{eqnarray}
+を得られる．線形と同様に最急降下法の最適解の条件から
+\begin{eqnarray}
+	&&\vec w = \sum^{n}_{i=1}a_iy_i\vec{z}_i \\
+	&& \sum^{n}_{i=1}a_iy_i = 0
+\end{eqnarray}
+である．よって最適化問題は下式と等価になる．
+\begin{eqnarray}
+	&&\vec{a}_{\rm SVM} = \argmax_{\vec{a}} \left\{\sum^{n}_{i=1}a_i -\frac{1}{2}\sum^{n}_{i=1}\sum^{n}_{j=1}a_ia_jy_iy_j\kappa(\vec{x}_i,\vec{x}_j) \right\} \nonumber \\
+	&&s.t.~~ \sum^{n}_{i=1}a_iy_i=0かつa_i \ge 0,~~\forall i=1,\cdots,n
+\end{eqnarray}
+重みの計算も線形SVMと同様に以下のように求められる．
+\begin{eqnarray}
+	&&\vec w = \sum^{n}_{i=1}a_iy_i\vec{z}_i \\
+	&&w_0 = \frac{1}{|S|}\sum_{j\in S}\left\{y_j-\sum_{i\in S}a_iy_i\kappa(\vec{x}_i,\vec{x}_j)\right\}
+\end{eqnarray}
+\section{ソフトSVM(Soft SVM)}
+分類したいデータが線形分離不可であったり，カーネル関数が複雑になってしまうときは，どうすればよいのか．SVMではマージン内への侵入を許容する（分類不可もしくは誤分類を許容するマージンを求める）ことで解決する．これをソフトSVMという．対して今までのものをハードSVMという．ソフトSVMについては線形SVMのときについてのみ説明する．
+
+線形識別関数$g(\vec x) = w_0 + \vec{w}^T\vec{x}$とする．線形分離が不可なとき線形SVMにおける式(\ref{omomi_seigen})は成り立たない．そこで新たに$\xi_i \ge 0$による以下の制約を考える．
+\begin{equation}
+	y_i(w_0+\vec{w}^T\vec{x}_i) \ge 1-\xi_i,~~\forall i ~ 1,\cdots,n
+\end{equation}
+マージンよりも識別境界に近い位置にあるデータに対して$\xi_i\ge0$を与えることで式の辻褄をあわせる．$\xi_i$に制限がなければどれだけでも入り込める，すなわち$\vec w$に制約がなくなるのでできるだけ小さい$\xi_i$を選択するようにしたい．そこでハードSVMの目的関数式(\ref{eq:mondai2})を修正し以下のような条件付き最適化問題を考える．
+\begin{eqnarray}
+	&&\vec{\rm w}_{SVM}=\argmin_{\vec{\rm w}}\left\{\frac{1}{2}\|\vec w\|+C\sum_{i=1}^{n}\xi_i\right\} \nonumber \\
+	&& s.t. ~~y_i(w_0+\vec{w}^T\vec{x}_i)\ge 1-\xi_i かつ \xi_i \ge 0,~~\forall i = 1,\cdots,n
+\end{eqnarray}
+$C$は定数であり，大きくすると$\xi_i$の影響が大きくなり小さくすると影響が小さくなる．すなわちCの大小によって許容する$\xi_i$の大きさが変わるようになる．
+
+この問題にラグランジュの未定乗数法を適用する．新たな制約$-\xi_i\le 0$に対応する未定乗数を$b_i \ge 0$とするとラグランジュ関数は
+\begin{eqnarray}
+	\label{eq:soft_l}
+	L(\vec{\rm w},\vec a,\vec \xi \vec b) = \frac{1}{2}\|\vec w\|^2 +C\sum^{n}_{i=1}\xi_i + \sum^{n}_{i=1}a_i(1-\xi_i-y_i(w_0+\vec{w}^T\vec{x}_i))-\sum^{n}_{i=1}b_i\xi_i
+\end{eqnarray}
+と定義される．このとき$\vec \xi=(\xi_1,\cdots,\xi_n),\vec b = (b_1,\cdots,b_n)$である．ハードSVMと同様に最急降下法の最適解の条件を利用する．はじめにラグランジュ関数を各変数で微分すると
+\begin{eqnarray}
+	\frac{\partial L(\vec{\rm w},\vec a,\vec \xi \vec b)}{\partial \vec w}&=& \vec{w}-\sum^{n}_{i=1}a_iy_i\vec{x}_i \\
+	\frac{\partial L(\vec{\rm w},\vec a,\vec \xi \vec b)}{\partial w_0}&=& -\sum^{n}_{i=1}a_iy_i \\
+	\frac{\partial L(\vec{\rm w},\vec a,\vec \xi \vec b)}{\partial \xi_i} &=& C-a_i-b_i
+\end{eqnarray}
+となる．それぞれを0と置くと
+\begin{eqnarray}
+	\label{eq:soft_soutui1}
+	&&\vec w = \sum^{n}_{i=1}a_iy_i\vec{x}_i \\
+	\label{eq:soft_soutui2}
+	&&\sum^{n}_{i=1}a_iy_i=0 \\
+	\label{eq:soft_soutui3}
+	&&a_i = C-b_i
+\end{eqnarray}
+が得られる．上記3式をラグランジュ関数，式(\ref{eq:soft_l})に代入すると
+\begin{eqnarray}
+		L(\vec{\rm w},\vec a,\vec \xi \vec b) &=& \frac{1}{2}\|\vec w\|^2 +C\sum^{n}_{i=1}\xi_i + \sum^{n}_{i=1}a_i(1-\xi_i-y_i(w_0+\vec{w}^T\vec{x}_i))-\sum^{n}_{i=1}b_i\xi_i \nonumber \\
+		&=&\frac{1}{2}\|\vec w\|^2 +C\sum^{n}_{i=1}\xi_i + \sum^{n}_{i=1}a_i-\sum^{n}_{i=1}a_i\xi_i -w_0\sum^{n}_{i=1}a_iy_i - \vec{w}^T\sum^{n}_{i=1}a_iy_i\vec{x}_i-\sum^{n}_{i=1} b_i \xi_i \nonumber \\
+		&&式((\ref{eq:soft_soutui2}))を代入 \nonumber \\
+		&=&\frac{1}{2}\|\vec w\|^2 +C\sum^{n}_{i=1}\xi_i + \sum^{n}_{i=1}a_i-\sum^{n}_{i=1}a_i\xi_i - \vec{w}^T\sum^{n}_{i=1}a_iy_i\vec{x}_i-\sum^{n}_{i=1} b_i \xi_i \nonumber \\
+		&&式((\ref{eq:soft_soutui3}))を代入 \nonumber \\
+		&=&\frac{1}{2}\|\vec w\|^2 +C\sum^{n}_{i=1}\xi_i + \sum^{n}_{i=1}a_i-\sum^{n}_{i=1}(C-b_i)\xi_i - \vec{w}^T\sum^{n}_{i=1}a_iy_i\vec{x}_i-\sum^{n}_{i=1} b_i \xi_i \nonumber \\
+		&&式((\ref{eq:soft_soutui1}))を代入 \nonumber \\
+		&=&\frac{1}{2}\|\vec w\|^2 +C\sum^{n}_{i=1}\xi_i + \sum^{n}_{i=1}a_i-\sum^{n}_{i=1}(C-b_i)\xi_i - \vec{w}^T\vec{w}-\sum^{n}_{i=1} b_i \xi_i \nonumber \\
+		&=&\frac{1}{2}\|\vec w\|^2 +C\sum^{n}_{i=1}\xi_i + \sum^{n}_{i=1}a_i-C\sum^{n}_{i=1}\xi_i+\sum^{n}_{i=1}b_i\xi_i - \|\vec{w}\|^2-\sum^{n}_{i=1} b_i \xi_i \nonumber \\
+		&=&\frac{1}{2}\|\vec w\|^2 + \sum^{n}_{i=1}a_i- \|\vec{w}\|^2\nonumber \\
+		&=&\sum^{n}_{i=1}a_i-\frac{1}{2}\|\vec{w}\|^2\nonumber \\
+		&=&\sum^{n}_{i=1}a_i-\frac{1}{2}\sum^{n}_{i=1}\sum^{n}_{j=1}a_ia_jy_iy_j\vec{x}_i^T\vec{x}_j \nonumber \\
+		&=& L_{dual}(\vec a)
+\end{eqnarray}
+が得られる．これはハードSVMと全く同じ式である．しかし式(\ref{eq:soft_soutui3})から
+\begin{eqnarray}
+	b_i &=& C-a_i~~b_i\ge0より \nonumber \\
+	C-a_i &\ge& 0 \nonumber \\
+	a_i &\le& C
+\end{eqnarray}
+という制約がある．これによりソフトSVMは以下の最適化問題になる．
+\begin{eqnarray}
+	&&\vec{a}_{\rm SVM} = \argmax_{\vec a} \left\{ \sum^{n}_{i=1}a_i-\frac{1}{2}\sum^{n}_{i=1}\sum^{n}_{j=1}a_ia_jy_iy_j\vec{x}_i^T\vec{x}_j \right\} \nonumber \\
+	&&s.t.~~\sum^{n}_{i=1} a_iy_i = 0 かつ0\le a\le C,~~\forall i=1,\cdots,n
+\end{eqnarray}
+
+最適解においてはKKT条件から次式が成り立つ\cite{kkt2}．
+\begin{eqnarray}
+	\label{eq:softkkt1}
+	a_i(1-\xi_i-y_i(w_0+\vec{w}^T\vec{x}_i)) = 0\\
+	\label{eq:softkkt2}
+	b_i\xi_i = 0
+\end{eqnarray}
+式(\ref{eq:softkkt1})はハードSVMと同様に以下のことを表す．
+\begin{eqnarray}
+	&&a_i >0 \Rightarrow y_i(w_0 + \vec{w}^T\vec{x}_i)=1-\xi_i \\
+	&&y_i(w_0+\vec{w}^T\vec{x}_i) > 1-\xi_i \Rightarrow a_i = 0
+\end{eqnarray}
+式(\ref{eq:softkkt2})は$\xi_i>0$すなわち$\vec{x}_i$がマージン内にあるとき$b_i=0$となることを表しており，このとき式(\ref{eq:soft_soutui3})から$a_i = C$となる．
+$a_i$の値によってデータの性質を分けると$a_i=0$ならば分類ができており，$0<a_i<C$のときそのデータはソフトSVMのサポートベクトルである．そして$a_i=C$であるデータはマージンよりも内側に存在する．
+
+サポートベクトルの集合を$M=\{ i|0<a_i<C\}$と定義する．このときサポートベクトル$i\in M$に対して$y_i(w_0+\vec{w}^T\vec{x}_i)=1$が成り立つ．また$y_i^2 = 1$より
+\begin{eqnarray}
+	y_i(w_0+\vec{w}^T\vec{x}_i)&=&1 \nonumber \\
+	y_i(w_0+\sum^{n}_{j=1}a_jy_j\vec{x}^T_j\vec{x}_i) &=& y_i^2 \nonumber \\
+ w_0 &=& y_i - \sum^{n}_{j=1}a_jy_j\vec{x}^T_j\vec{x}_i
+\end{eqnarray}
+となる．また，集合$S={i|0<a}$を定義するとき最適化問題を解いたときの重みの求め方は以下のとおりである．
+\begin{eqnarray}
+	\vec w = \sum_{i\in S}a_iy_i\vec{x}_i
+\end{eqnarray}
+\begin{eqnarray}
+	\vec w_0 = \frac{1}{|M|}\sum_{j\in M}\left\{y_j-\sum_{i\in S}a_iy_i\vec{x}_i^T\vec{x}_j\right\}
+\end{eqnarray}
+\renewcommand{\theequation}{A.\arabic{equation} }
+\setcounter{equation}{0}
+
+\clearpage
+\appendix
+\section{ラグランジュの未定乗数法\cite{main}}
+最適化したい目的関数
+\begin{equation}
+	f(\vec{x})=f(x_1,\cdots,x_d)
+\end{equation}
+について，$K$個の請託条件
+\begin{equation}
+	g_k(\vec{x})=0,~~k=1,\cdots,K
+\end{equation}
+が全て凸関数であるとする．このとき未定乗数$\lambda_1,\cdots,\lambda_K$を用意し
+\begin{equation}
+	F(\vec x)=f(\vec x)+\sum^{K}_{k=1}\lambda_kg_k(\vec x)
+\end{equation}
+を構成する．$F(\vec x)$の極値問題を解けば，$K$個の制約条件のもとで$f(\vec x)$を最大化(最小化)する$\vec x$が求まる．
+
+\section{最急降下法}
+極値問題を解くことを考える．関数$f(\vec x)$の極小値(極大値)を求めるとき以下の手順で求めることを最急降下法という．
+\begin{enumerate}
+	\item 適当な初期値$\vec{x}^(0)を決める．$
+	\item $\partial f(\vec x^{(k)})/\partial \vec x^{(k)}=0$なら終了
+	\item 下式の通りに$\vec{x}^{k+1}を決める$($\eta$は定数)
+	\begin{equation}
+		\vec{x}^{(k+1)} = \vec{x}^{(k)} - \eta \frac{\partial f(\vec{x}^{(k)})}{\vec{x}^{(k)}}
+	\end{equation}
+	\item 2に戻る
+\end{enumerate}
+極大値を求める場合，更新式の符号を変えればよい．利点として，凸関数であれば必ず最適解が求まる点，単純なため実装な簡単な点があげられる．欠点としては微分可能な関数でなければ更新できないこと，極値が複数ある場合は局所解に陥るかどうかが初期値依存になることなどがあげられる．
+\begin{thebibliography}{99}
+	\bibitem{main} 後藤正幸, 小林学, ``入門パターン認識と機械学習'',コロナ社, pp134--153,pp227-230,2014
+	\bibitem{強双対}``ラグランジュ関数の背後にある理論 (Boyd本5章概要) - うどん記''(20.10.2016),http://ir5.hatenablog.com/entry/20141214/1418553079
+  \bibitem{kkt}竹縄知之(東京海洋大学),``最適化数学-レジュメ2'',http://www2.kaiyodai.ac.jp/~takenawa/optimization/resume10-2.pdf
+	\bibitem{kkt2}中川裕志(東京大学),``クラシックな機械学習の入門-サポートベクターマシン'',http://www.r.dl.itc.u-tokyo.ac.jp/~nakagawa/SML1/kernel1.pdf
+\end{thebibliography}
+
+\end{document}

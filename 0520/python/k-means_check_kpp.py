@@ -27,7 +27,7 @@ for i in range(kmeans_iter):
 	KM.fit(iris_pca)
 	KM_inertia += KM.inertia_
 	if KM_inertia_min > KM.inertia_:
-		KM_min_count = 0
+		KM_min_count = 1
 		KM_inertia_min = KM.inertia_
 	elif KM_inertia_min == KM.inertia_:
 		KM_min_count += 1
@@ -42,7 +42,7 @@ for i in range(kmeans_iter):
 	KMpp.fit(iris_pca)
 	KMpp_inertia += KMpp.inertia_
 	if KMpp_inertia_min > KMpp.inertia_:
-		KMpp_min_count = 0
+		KMpp_min_count = 1
 		KMpp_inertia_min = KMpp.inertia_
 	elif KMpp_inertia_min == KMpp.inertia_:
 		KMpp_min_count += 1
