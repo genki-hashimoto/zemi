@@ -14,7 +14,7 @@ iris_pca = pd.DataFrame(PCA(n_components=2).fit_transform(iris_data))
 
 
 
-KM = KMeans(n_clusters=3,init='random',n_init=1,max_iter=300,tol=1e-4)
+KM = KMeans(n_clusters=3,init='k-means++',n_init=1,max_iter=300,tol=1e-4)
 KM.fit(iris_pca)
 labels=KM.labels_
 center = pd.DataFrame(KM.cluster_centers_)

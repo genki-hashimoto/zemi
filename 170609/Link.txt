@@ -1,0 +1,5 @@
+http://www.albert2005.co.jp/technology/mining/cluster1.html
+http://mathtrain.jp/manhattan
+https://matplotlib.org/examples/color/colormaps_reference.html
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
+http://www.kamishima.net/jp/clustering/
