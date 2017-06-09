@@ -1,0 +1,216 @@
+\documentclass[a4j]{jsarticle}
+
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{subfigure}
+\usepackage{verbatim}
+\usepackage{wrapfig}
+\usepackage{ascmac}
+\usepackage{makeidx}
+\usepackage{listings}
+\usepackage{here}
+\usepackage{amsmath}
+
+\renewcommand{\lstlistingname}{リスト}
+\def\vec#1{\mbox{\boldmath $#1$}}
+
+
+\title{クラスタリング}
+\author{橋本 玄基}
+\date{2017/06/07}
+
+\begin{document}
+\maketitle
+
+
+
+\section{概要}
+クラスタリングは教師なし学習の一つであり，データ群を外的要因無く，アルゴリズムに従って分類する手法である．
+近年流行している深層学習は，教師付き学習であり．ラベルの貼られた大量のデータを学習して未来のデータを予測するために用いられる．
+対して教師なし学習は，正しいラベルが不明であるデータに用いられ，妥当であろうラベル分けを行いデータ解析の補助のために用いられる．
+例として，顧客のグループ化による広告メールの差別化等があげられる．橋本，清野らによるプログラミング教育のためのログデータ解析についてもログデータはラベルの無いデータであるため教師なし学習であるクラスタリングを用いて解析を行っている．
+
+
+\section{種類}
+\subsection{階層クラスタリング}
+階層クラスタリングは性質が近いデータをまとめていき，小さな分類を重ね大きな分類を作成する手法である．最短距離法，ウォード法などがあげられる．どの時点の階層を見るかで任意のクラスタに分類でき，樹形図等からデータの関係を非常に細かく見ることができるが，計算量が膨大かつモデルが複雑であるため，大量データの解析には向いていない．
+\subsection{非階層クラスタリング}
+非階層クラスタリングは分布や境界値などを更新することで，分類をする手法である．k-means法，混合正規分布モデル，凸クラスタリング，ノンパラメトリックベイズモデルなどがあげられる．
+
+
+\section{距離}
+データから作られた特徴ベクトル間がどれだけ離れているかを表す指標となる距離にはいくつか種類がある．本節ではそれを紹介する．
+\subsection{定義}
+本節でしようする記号の定義を以下に示す．
+\begin{eqnarray*}
+	\vec{x}(\vec{y}) &:=& ベクトル(\vec{x} = {x_1, \cdots, x_n}) \\
+	x_i(y_i) &:=& ベクトル\vec{x}のi次元の要素 \\
+	n &:=& ベクトルの次元数 \\
+	N &:=& データの数 \\
+	X &:=& データの集合．(|X| = N, X={\vec{x}_1,\cdots,\vec{x}_N}) \\
+	d(\vec{x},\vec{y}) &:=& ベクトル\vec{x},\vec{y}間の距離
+\end{eqnarray*}
+
+\subsection{ユークリッド距離(Euclidean distance)}
+もっとも一般的な距離であり，中心から円形に離れると距離が大きくなる．一般化した式は
+\begin{equation}
+	d(\vec{x},\vec{y}) = \sqrt{(x_1,y_1)^2+\cdots+(x_n,y_n)^2} (n次元)
+\end{equation}
+となる．距離の大小さえわかれば良い問題においては，平方根を取り除いた，2乗ユークリッド距離が用いられることもある．
+\subsection{標準化ユークリッド距離}
+魚の体長[cm]と重量[g]など，単位の違うデータがベクトルとなっているデータは多く存在する．それらのベクトルの距離をユークリッド距離で図ろうとすると体長が10[cm]違うことと体重が10[g]違うことが同じ意味合いとなってしまう．そのため，データを分散で正規化したもの同士の距離を測ることを考える．これを標準化ユークリッド距離という．各次元の分散が$\sigma_1,\cdots,\sigma_n$で与えられた時，式は以下のとおりである．
+\begin{equation}
+	d(\vec{x},\vec{y}) = \sqrt{\left(\frac{x_1-y_1}{\sigma_1}\right)^2 + \cdots + \left(\frac{x_n-y_n}{\sigma_n}\right)^2}
+\end{equation}
+距離計算の前に前処理としてデータ全体を分散で割る正規化の作業を行うほうが一般的かもしれない．
+\subsection{マンハッタン距離}
+ユークリッド距離は2乗することにより，値を正にしているがマンハッタン距離は絶対値計算により正とする．そのため，円形ではなく中心からひし形状に距離が遠くなっていく．式は以下のとおりである．
+\begin{equation}
+	d(\vec{x},\vec{y}) = |x_1-y_1| + \cdots + |x_n-y_n|
+\end{equation}
+マンハッタンは碁盤上に街ができており，ある地点同士を移動するにはどの道を通っても同じブロック数を通過することが由来である．ユークリッド距離に対し，いくつもの軸で差があることを遠いと強く評価する．
+\subsection{チェビシェフ距離}
+チェビシェフ距離は斜めに離れた距離とx軸y軸方向に離れた距離を区別しない．チェスのキングや将棋の王がある地点に移動するのにかかる手数が距離になるとイメージするとわかりやすいだろう．最も差がある次元についてのみ注目した距離といえる．中心から正方形状に距離が遠くなっていく．
+\begin{equation}
+	d(\vec{x},\vec{y}) = \max_{i}(|x_i-y_i|)
+\end{equation}
+\subsection{ミンコフスキー距離}
+ユークリッド，マンハッタン，チェビシェフ距離を一般化したものをミンコフスキーといい下式で表す．$a=b=1$のときマンハッタン距離，$a=b=2$のよきユークリッド距離，$a=b=\infty$のときチェビシェフ距離となる．$a$は次元の違いによる重み，$b$はデータ間の大きな差に与える重みを変える．
+\begin{equation}
+	d(\vec{x},\vec{y}) = \left(\sum_{i=1}^{n}(|x_i-y_i|)^a\right)^{1/b}
+\end{equation}
+\subsection{マハラノビス距離}
+データには相関があるものも多く存在する．例えば身長と体重などである．このようなデータにユークリッド距離を適用すると，平均的な人より身長と体重が大きい同じ体格で体が大きい人，身長は小さいのに体重が大きい肥満体型の人，身長は高いが体重が少ない痩せ型の人が同じ距離に位置してしまう．そこで，相関が強い方向の距離を短く考えるようにしたのがマハラノビス距離である．以下のように定義される．
+\begin{equation}
+	d(\vec{x},\vec{y}) = \sqrt{(\vec{x}-\vec{y})^t \vec{\Sigma}^{-1}(\vec{x}-\vec{y})}
+\end{equation}
+\subsection{Dynamic Time Warping(DTW)}
+時系列データに適用する距離も紹介しておこう．DTWは時系列データの位相ズレを解消する距離尺度である．アルゴリズムを以下に示す．DTWはベクトルの次元数が異なっても距離計算が可能であるためベクトル$\vec{y}$の次元数をmと置く．
+\begin{enumerate}
+  \item $m\times n$行列$\vec{D}$を，$\vec{D}_{1,1}=0$，それ以外の要素を$\infty$と定義する．
+  \item 全ての$i$($=2,\cdots,n$)，$j$($=2,\cdots,m$)について以下の式で$\vec{D}_{i,j}$を求める．
+  \begin{align}
+    \vec{D}_{i,j}=&\sqrt[~]{\mathstrut(x_{i},y_{j})^2}+ \min(\vec{D}_{i-1,j},\vec{D}_{i,j-1},\vec{D}_{i-1,j-1})
+  \end{align}
+  \item $\vec{D}_{n,m}$を距離とする．
+\end{enumerate}
+
+
+\section{階層クラスタリング}
+先述のとおり，クラスタをまとめて最終的に1つのクラスタとするのが，階層クラスタリングである．手法の違いとしてはクラスタ間の距離の計算方法にある．代表として，4つの手法を紹介する．
+\subsection{定義}
+本節で仕様する記号を以下に定義する．
+\begin{eqnarray*}
+	P,Q &:=& ある時点で存在するクラスタ \\
+	d(P,Q) &:=& クラスタ間の距離 \\
+	\vec{p_i},\vec{q_i} &:=& クラスタP(Q)に属するデータベクトル \\
+	d(\vec{p},\vec{q}) &:=& あるデータベクトル間の距離 \\
+	E(P) &:=& あるクラスタPの重心と全データの距離との2乗和 \\
+	&=& \sum_{i=0}^{|P|}(\vec{p}_i - \vec{\mu}_P)^2 \\
+	\vec{\mu}_P &:=& あるクラスタPのセントロイド(重心ベクトル)
+\end{eqnarray*}
+\subsection{最短距離法}
+最短距離法はクラスタ同士で最も近いデータ間の距離を採用する．高速ではあるが，クラスタに1つずつデータがまとまっていくチェイン現象が起きやすく．分類性能は低い．
+\begin{equation}
+	d(P,Q) = \min(d(\vec{p}_i,\vec{q}_j))
+\end{equation}
+\subsection{最長距離法}
+最長距離法はクラスタ同士で最も遠いデータ間の距離を採用する．最短距離法よりも分類性能は高いが，外れ値の影響が大きくなってしまう．
+\begin{equation}
+	d(P,Q) = \max(d(\vec{p}_i,\vec{q}_j))
+\end{equation}
+\subsection{群平均法}
+群平均法はクラスタ同士の全データ間の距離の平均を採用する．そのため計算量は前述の二手法よりも大きくなる．しかし，外れ値の影響やチェイン現象のおきやすさは改善される．
+\begin{equation}
+	d(P,Q) = \frac{\sum_{i = 0}^{|P|}\sum_{j=0}^{|Q|}d(\vec{p}_i,\vec{q}_j)}{|P|+|Q|}
+\end{equation}
+\subsection{Ward法}
+距離を測るクラスタの重心とのデータの距離の2乗和$E(P),E(Q)$と2つのクラスタをあわせた重心との全データの距離の2乗和$E(P \cup Q)$を用いて距離を下式のように計算する．
+\begin{equation}
+	d(P,Q) = E(P \cup Q)-(E(P)+E(Q))
+\end{equation}
+群平均法よりさらに計算量が多いが，分類性能はとても高い．
+
+
+
+
+
+
+
+
+\section{k-means法(k平均法)}
+\subsection{概要}
+k-means法は，予めクラスタ数を決定した上で，クラスタリングを行う．2つの手順，クラスタ毎の中心の更新と最も近いクラスタ中心に所属クラスを更新を2つの手順を繰り返してクラスタを確定する．k-means法はアルゴリズムが単純であり，高速である．
+\subsection{アルゴリズム}
+\label{sec:km-algo}
+クラスタ数が$k$,それぞれのクラスタに属するデータ集合を$C_1,C_2,\cdots,C_k$,クラスタ中心を$\vec c_1,\vec c_2,\cdots,\vec c_k$とする．このとき観測データ集合$X=\{\vec{x_i}\mid i=1,2,\cdots,n\}$であるとするとアルゴリズムは以下のようになる．
+\begin{enumerate}
+\item $X$の中からデータをランダムに$k$個選びそれぞれを$\vec c_1,\vec c_2,\cdots,\vec c_k$とする．
+\item 全データ$\vec x_i$($i=1,2,\cdots,n$)を最も近いクラスタ中心に対応するクラスタ集合に所属させる．
+\item 各クラスタ中心を式\ref{eq:k-means}の通りに更新する．
+\begin{equation}
+\vec c_i=\frac{1}{|C_i|}\sum_{\vec x \in C_i}^{j}\vec x
+\label{eq:k-means}
+\end{equation}
+\item クラスタ集合に変化がなくなるまで手順(2)，(3)を繰り返す．
+\end{enumerate}
+
+\subsection{k-means$++$}
+\ref{sec:km-algo}節より分かる通り，k-means法は初期値にランダムな値が用いられるため，収束する結果も必ず良くなるとは限らない．また，同じ結果になった際も初期値によては繰り返し回数がとても多くなってしまう．この問題をいくらか改善するためにk-means++法が提案された．
+アルゴリズムは以下のとおりである．
+\begin{enumerate}
+\item クラスタ中心$\vec c_1$を$X$の中からランダムに１つ選ぶ．
+\item $D(\vec x)(\vec x\in X)m$を求める．$D(\vec x)$は$\vec x$と決定された最も近いクラスタ中心の最短距離を表す．
+\item 式\ref{eq:k-means++}の確率分布に従って次のクラスタ中心$\vec c_i$を決定する．
+\begin{equation}
+\frac{D(\vec x)^2}{\sum_{\vec x\in X}D(\vec x)^2}
+\label{eq:k-means++}
+\end{equation}
+\item k-means法の手順(2)から(4)を行う．
+\end{enumerate}
+
+\subsection{k-means法の弱点}
+k-means法はクラスタ数が既知でなければ使用できない．また大きな弱点として，クラスタ毎のデータ数はほぼ等しくなるため，分布数が大きく異なるクラスを正しく分類することはできない．
+
+
+\section{混合正規分布モデル(GMM)}
+\subsection{概要}
+混合正規分布モデルは,あるデータ群はいくつかの正規分布によって発生したと考え,それぞれの正規分布のパラメータ(平均と分散)を求める数理モデルである.
+各正規分布をクラスタとみなし，クラスタリングの手段として用いられることになる.混合正規分布モデルによるクラスタリングの特徴として,1つのクラスタに属するのてはなく,どのクラスタであるかの確率が出力されるソフトなクラスタリングである点があげられる.
+
+\subsection{アルゴリズム}
+\label{sec:gmm_algo}
+クラスタ数が$k$のとき，クラスタを$\omega_i$，事前確率を$\pi_i$，正規分布の平均を$\vec{\mu}_i$，分散（2次元以上の場合は分散共分散行列）を$\vec{\Sigma}_i$とおく($i=1,2,\cdots,k$)．また，$\vec{\theta}_i = (\vec{\mu}_i,\vec{\Sigma}_i)^t$，$\vec{\theta} = (\vec{\theta_1},\cdots,\vec{\theta}_k,\pi_1,\cdots,\pi_k)^t$と定義する．そして，$n$個のデータを$\vec{x}_j(k=1,2,\cdots,n)$とおいた時，アルゴリズムは以下のようになる．なお，$P(x)$は確率関数，$p(x)$は確率密度関数である．
+\begin{enumerate}
+\item $\pi_i,\vec{\theta}_i$の初期値を与える．
+\item 各$\vec{x}_j$に対して$P(\omega_i|\vec{x}_j;\vec{\theta})$を求める．
+\begin{equation}
+	\label{eq:gmm_cls}
+P(\omega_i|\vec{x}_j;\vec\theta)
+=\frac{\pi_i\cdot p(\vec {x}_j|\omega_i;\vec{\theta}_i)}{\displaystyle\sum_{l=1}^{k} \pi_l\cdot p(\vec{x}_j|\omega_l;\vec\theta_l)}
+\end{equation}
+\item 次式によって$\hat\pi_i$,$\hat{\vec{\mu}_i}$,$\hat{\vec{\Sigma}_i}$を求めた後，$\pi_i = \hat\pi_i$,$\vec{\mu}_i = \hat{\vec{\mu}_i}$,$\vec{\Sigma}_i = \hat{\vec{\Sigma}_i}$としてパラメータを更新する．
+\begin{equation}
+\label{eq:gmm_pi}
+\hat\pi_i = \frac{1}{n}\displaystyle\sum_{j=1}^{n} P(\omega_i|\vec {x}_j;\vec\theta)
+\end{equation}
+\begin{equation}
+	\label{eq:gmm_mu}
+\hat{\vec{\mu}_i}= \frac{\displaystyle\sum_{j=1}^{n} P(\omega_i|\vec{x}_j;\vec\theta)\vec{x}_j}{\displaystyle\sum_{j=1}^{n} P(\omega_i|\vec{x}_j;\vec\theta)}
+\end{equation}
+\begin{equation}
+	\label{eq:gmm_sigma}
+\hat{\vec{\Sigma}_i}= \frac{\displaystyle\sum_{j=1}^{n} P(\omega_i|\vec{x}_j;\vec\theta)(\vec{x}_j - \hat{\vec{\mu}_i})(\vec{x}_j - \hat{\vec{\mu}_i})^t}
+{\displaystyle\sum_{j=1}^{n} P(\omega_i|\vec{x}_j;\vec\theta)}
+\end{equation}
+\item 対数尤度$\log p(\vec x;\vec\theta$)を求め増分が定めた閾値以下なら終了し，そうでなければ(2)に戻る．
+\end{enumerate}
+
+\subsection{混合正規分布モデルの弱点}
+k-means法と同様に，クラスタ数が既知である必要がある．しかし，情報量基準を用いてモデル選択を行うことが可能である．しかしそのためには各クラス多数で計算を繰り返すため，計算量がとても多くなる．
+
+
+
+%勉強中，前述の3つの非階層クラスタリング手法の欠点を全て補う．
+\end{document}
