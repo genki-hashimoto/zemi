@@ -29,7 +29,7 @@ plt.scatter(pca[:,0],pca[:,1])
 
 # 推定したガウス分布を描画
 x = np.linspace(min(pca[:, 0] - 1.0), max(pca[:, 0] + 1.0))
-y = np.linspace(min(pca[:, 1] - 1.0), max(pcagit[:, 1] + 1.0))
+y = np.linspace(min(pca[:, 1] - 1.0), max(pca[:, 1] + 1.0))
 X, Y = np.meshgrid(x, y)
 
 # 各ガウス分布について

@@ -55,7 +55,7 @@
 \subsection{ユークリッド距離(Euclidean distance)}
 もっとも一般的な距離であり，中心から円形に離れると距離が大きくなる．一般化した式は
 \begin{equation}
-	d(\vec{x},\vec{y}) = \sqrt{(x_1,y_1)^2+\cdots+(x_n,y_n)^2} (n次元)
+	d(\vec{x},\vec{y}) = \sqrt{(x_1-y_1)^2+\cdots+(x_n,y_n)^2}
 \end{equation}
 となる．距離の大小さえわかれば良い問題においては，平方根を取り除いた，2乗ユークリッド距離が用いられることもある．
 \subsection{標準化ユークリッド距離}
@@ -91,7 +91,7 @@
   \item $m\times n$行列$\vec{D}$を，$\vec{D}_{1,1}=0$，それ以外の要素を$\infty$と定義する．
   \item 全ての$i$($=2,\cdots,n$)，$j$($=2,\cdots,m$)について以下の式で$\vec{D}_{i,j}$を求める．
   \begin{align}
-    \vec{D}_{i,j}=&\sqrt[~]{\mathstrut(x_{i},y_{j})^2}+ \min(\vec{D}_{i-1,j},\vec{D}_{i,j-1},\vec{D}_{i-1,j-1})
+    \vec{D}_{i,j}=&\sqrt[~]{\mathstrut(x_{i}-y_{j})^2}+ \min(\vec{D}_{i-1,j},\vec{D}_{i,j-1},\vec{D}_{i-1,j-1})
   \end{align}
   \item $\vec{D}_{n,m}$を距離とする．
 \end{enumerate}

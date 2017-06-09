@@ -25,4 +25,4 @@ plt.contour(X, Y, Z, [100])
 #plt.contour(X, Y, Z, [1000])
 
 # plt.show()
-plt.savefig("img/minkowski__"+str(int(a))+str(int(b))+".png")
+plt.savefig("img/minkowski__"+str(int(a))+str(int(b))".png")
